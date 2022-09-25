@@ -4,19 +4,22 @@ from leader_follower.Cell import Cell
 
 
 def generate_cells(idx: list[int], p_payoff: list[float],
-                   i_payoff: list[float], d: list[int]):
+                   i_payoff: list[float], d: list[int], dim: list[int]):
     """! Generate an array of Cell objects defining the environment.
 
     @param idx array of indexes of cells in environment
     @param p_payoff array of payoffs for the patroler (robot)
     @param i_payoff array of payoffs for the intruder
     @param d array of rounds to wait while penetrating for each cell
+    @param dim array of cell dimensions for corresponding cell indexes
 
     @return list of Cell objects with mapped given parameters
     """
+    if dim is None:
+        dim = np.zeros(len(idx)).tolist()
 
     environment = []
-    for ar_idx, tup in enumerate(zip(idx, p_payoff, i_payoff, d)):
+    for ar_idx, tup in enumerate(zip(idx, p_payoff, i_payoff, d, dim)):
         c = Cell(*tup)
         environment.append(c)
 
@@ -27,7 +30,7 @@ def generate_adjacence(adjacence_list: list((int, int)), count: int):
     """! Generate matrix specifying which cells are adjacent.
 
     Matrix size is (count, count), coordinates specified in adjacence_list
-        are set to 1, also the cell is adjacent to itself                        (should it?)
+        are set to 1, also the cell is adjacent to itself
         The rest of values are 0.
 
     adj(x, y) = adj(y, x)

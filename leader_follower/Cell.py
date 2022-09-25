@@ -5,7 +5,7 @@ class Cell:
         intruder and penetration time.
     """
 
-    def __init__(self, idx = 0, p = 0, i = 0, d = 0) -> None:
+    def __init__(self, idx=0, p=0, i=0, d=0, dim=0) -> None:
         """! Construct a cell with given parameters.
 
         @param idx index of a cell in the environment
@@ -24,3 +24,6 @@ class Cell:
 
         ## how many rounds it takes for intruder to penetrate
         self.d = d
+
+        ## size of cell
+        self.dim = dim
