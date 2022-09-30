@@ -41,13 +41,13 @@ class Strategy(BaseStrategy):
         constraints, intruder_constraints = self.get_eq_constraints()
         bound = [(0, 1) for _ in self.robot_strategy]
 
-        res = minimize(self.target_fun, self.robot_strategy, bounds=bound,
-                       constraints=constraints + intruder_constraints)
+        # res = minimize(self.target_fun, self.robot_strategy, bounds=bound,
+        #                constraints=constraints + intruder_constraints)
 
 
-        # res = shgo(self.target_fun, bounds=bound,
-        #            constraints=constraints + intruder_constraints,
-        #            sampling_method='sobol')
+        res = shgo(self.target_fun, bounds=bound,
+                   constraints=constraints + intruder_constraints,
+                   sampling_method='sobol')
 
         # if minimalization failed, go to second phase of the algorithm
 

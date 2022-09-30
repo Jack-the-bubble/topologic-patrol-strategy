@@ -1,7 +1,9 @@
-# for now this strategy is assuming the discovery of intruder is only possible, if both parties are in the same cell
+# for now this strategy is assuming the discovery of intruder is only possible,
+# if both parties are in the same cell
+import math
 import numpy as np
 
-from scipy.optimize import minimize, Bounds
+from scipy.optimize import minimize, Bounds, shgo
 
 from dijkstar.algorithm import single_source_shortest_paths
 from dijkstar import Graph
@@ -59,29 +61,31 @@ class MetricStrategy(BaseStrategy):
         """
         base_strategy = self.optimize()
 
-        self.calculate_proximity_values()
+        # self.calculate_proximity_values()
 
-        final_strategy = self.update_strategy_with_prox_data(base_strategy)
+        # final_strategy = self.update_strategy_with_prox_data(base_strategy)
 
-        return final_strategy
+        return base_strategy
 
     def optimize(self):
         constraints, intruder_constraints = self.get_eq_constraints()
-        bound = Bounds(0, 1)
-        # bound = self.getSHGOBounds()
+        # bound = Bounds(0, 1)
+        bound = self.getSHGOBounds()
         # res = minimize(self.target_fun, self.robot_strategy, method='nelder-mead',
         #                options={'xatol': 1e-8, 'disp': True},
         #                bounds=bound, constraints=constraints)
-        res = minimize(self.target_fun, self.robot_strategy, bounds=bound,
-                       constraints=constraints + intruder_constraints)
-        # res = shgo(self.target_fun, bounds=bound,
-        #            constraints=constraints)
+        # res = minimize(self.target_fun, self.robot_strategy, bounds=bound,
+        #                constraints=constraints + intruder_constraints)
+        res = shgo(self.target_fun, bounds=bound,
+                   constraints=constraints+intruder_constraints,
+                   sampling_method='sobol', options={'disp': True,
+                                                     'symmetry': True})
 
         # if minimalization failed, go to second phase of the algorithm
 
         if not res.success:
             print("Phase 1 failed, started phase 2")
-            self.optimize_second_phase(constraints)
+            res = self.optimize_second_phase(constraints)
 
         return res
 
@@ -119,8 +123,11 @@ class MetricStrategy(BaseStrategy):
             for j in self.environment:
                 self.s = i
                 self.q = j
-                res = self.optimize_single_case(constraints)
-                optimize_results.append(res)
+                try:
+                    res = self.optimize_single_case(constraints)
+                    optimize_results.append(res)
+                except Exception as e:
+                    print(e)
 
         return self.get_best_strategy(optimize_results)
 
@@ -132,13 +139,18 @@ class MetricStrategy(BaseStrategy):
 
         @return result of optimization as scipy object from optimize toolkit
         """
-        bound = Bounds(0, 1)
+        # bound = Bounds(0, 1)
+        bound = self.getSHGOBounds()
         print(f"optimizing for pair ({self.s}, {self.q}).")
 
         intruder_constraints = self.get_second_phase_constraints()
         res = minimize(self.second_phase_target_fun, self.robot_strategy,
                        bounds=bound,
                        constraints=constraints + intruder_constraints)
+
+        res = shgo(self.target_fun, bounds=bound,
+                   constraints=constraints+intruder_constraints,
+                   sampling_method='sobol')
         print(f"Optimization result is {res.success}")
 
         return res
@@ -203,13 +215,16 @@ class MetricStrategy(BaseStrategy):
         payoff_list = []
         for res in strategy_list:
             # if res.success:
-            payoff = self.second_phase_target_fun(res.x)
+            # payoff = self.second_phase_target_fun(res.x)
+            payoff = res['fun']
+            if payoff == 'inf':
+                payoff = -math.inf
             payoff_list.append(payoff)
 
             # else:
             #     payoff_list.append(-inf)
 
-        index = payoff_list.index(max(payoff_list))
+        index = payoff_list.index(min(payoff_list))
 
         return strategy_list[index]
 

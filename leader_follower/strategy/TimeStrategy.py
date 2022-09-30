@@ -64,10 +64,10 @@ class TimeStrategy(BaseStrategy):
         self.distance_weight = 1
 
         ## average robot velocity while going between two cells
-        self.p_velocity = 0.5  # m/s
+        self.p_velocity = 2  # m/s
 
         ## average time of active search with lookaround after reaching a cell
-        self.search_t = 20  # seconds
+        self.search_t = 30  # seconds
 
     def generate_strategy(self):
         """! Call all methods to get robot strategy
@@ -77,29 +77,30 @@ class TimeStrategy(BaseStrategy):
         """
         base_strategy = self.optimize()
 
-        # self.calculate_proximity_values()
+        self.calculate_proximity_values()
 
-        # final_strategy = self.update_strategy_with_prox_data(base_strategy)
+        final_strategy = self.update_strategy_with_prox_data(base_strategy)
 
-        return base_strategy
+        return final_strategy
 
     def optimize(self):
         constraints, intruder_constraints = self.get_eq_constraints()
-        bound = Bounds(0, 1)
-        # bound = self.getSHGOBounds()
+        # bound = Bounds(0, 1)
+        bound = self.getSHGOBounds()
         # res = minimize(self.target_fun, self.robot_strategy, method='nelder-mead',
         #                options={'xatol': 1e-8, 'disp': True},
         #                bounds=bound, constraints=constraints)
         # res = minimize(self.target_fun, self.robot_strategy, bounds=bound,
         #                constraints=constraints + intruder_constraints)
         res = shgo(self.target_fun, bounds=bound,
-                   constraints=constraints+intruder_constraints)
+                   constraints=constraints+intruder_constraints,
+                   sampling_method='halton', options={'disp': True})
 
         # if minimalization failed, go to second phase of the algorithm
 
         if not res.success:
             print("Phase 1 failed, started phase 2")
-            self.optimize_second_phase(constraints)
+            res = self.optimize_second_phase(constraints)
 
         return res
 
@@ -150,13 +151,17 @@ class TimeStrategy(BaseStrategy):
 
         @return result of optimization as scipy object from optimize toolkit
         """
-        bound = Bounds(0, 1)
+        # bound = Bounds(0, 1)
+        bound = self.getSHGOBounds()
         print(f"optimizing for pair ({self.s}, {self.q}).")
 
         intruder_constraints = self.get_second_phase_constraints()
-        res = minimize(self.second_phase_target_fun, self.robot_strategy,
-                       bounds=bound,
-                       constraints=constraints + intruder_constraints)
+        # res = minimize(self.second_phase_target_fun, self.robot_strategy,
+        #                bounds=bound,
+        #                constraints=constraints + intruder_constraints)
+        res = shgo(self.target_fun, bounds=bound,
+                   constraints=constraints+intruder_constraints,
+                   sampling_method='sobol')
         print(f"Optimization result is {res.success}")
 
         return res
@@ -220,12 +225,12 @@ class TimeStrategy(BaseStrategy):
 
         payoff_list = []
         for res in strategy_list:
-            # if res.success:
-            payoff = self.second_phase_target_fun(res.x)
-            payoff_list.append(payoff)
+            if res.success:
+                payoff = self.second_phase_target_fun(res.x)
+                payoff_list.append(payoff)
 
-            # else:
-            #     payoff_list.append(-inf)
+            else:
+                payoff_list.append(-math.inf)
 
         index = payoff_list.index(max(payoff_list))
 
@@ -337,7 +342,7 @@ class TimeStrategy(BaseStrategy):
             return math.inf, 0
 
         else:
-            tau = self.get_time_to_travel(i, j)
+            tau = self.get_time_to_travel(i, j) + self.search_t
             return tau, self.robot_strategy[i * len(self.environment) + j]
 
     def get_neighbour_indexes(self, cell: Cell):

@@ -60,7 +60,7 @@ def generate_p_strategy(adj_matrix: np.ndarray):
     @return ndarray of probabilities for movement between every cell
     """
     row_len = len(adj_matrix[0])
-    strat = np.zeros((row_len ** 2, 1))
+    strat = np.zeros(row_len ** 2)
     for idx, row in enumerate(adj_matrix):
         neighbours_count = sum(row)
         probability = 1 / neighbours_count

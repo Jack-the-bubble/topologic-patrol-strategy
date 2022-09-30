@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 
+import math
 import numpy as np
 
 from leader_follower.Cell import Cell
 from leader_follower.strategy.Strategy import Strategy
 from leader_follower.strategy.MetricStrategy import MetricStrategy
+from leader_follower.strategy.TimeStrategy import TimeStrategy
 from leader_follower.game_generation import generate_cells, \
     generate_adjacence, generate_p_strategy
 
 
 def simple_optimize():
     idx_array = [0, 1, 2]
-    p_payoff_array = [-0.5, 0, -0.6]
-    i_payoff_array = [0.5, 0, 0.5]
-    d_array = [2, 1, 2]
-    dim_array = [10, 15, 12]
+    p_payoff_array = [0.9, 0, 0.8]
+    i_payoff_array = [0.8, 0, 0.6]
+    d_array = [80, 10, 80]
+    dim_array = [4, 8, 4]
     X0 = 1
     Y0 = -1
 
@@ -23,10 +25,11 @@ def simple_optimize():
     adjacence_array = generate_adjacence([(0, 1), (1, 2)], 3)
     patroller_strat = generate_p_strategy(adjacence_array)
 
-    strategy = MetricStrategy(X0, Y0, env, adjacence_array, patroller_strat)
+    strategy = TimeStrategy(X0, Y0, env, adjacence_array, patroller_strat)
+    # strategy = MetricStrategy(X0, Y0, env, adjacence_array, patroller_strat)
     # strategy = Strategy(X0, Y0, env, adjacence_array, patroller_strat)
 
-    res = strategy.generate_strategy()
+    res = strategy.optimize()
 
     return res
 
@@ -37,16 +40,16 @@ def optimize3by2():
     p_payoff_array = np.zeros(env_count).tolist()
     i_payoff_array = np.zeros(env_count).tolist()
     d_array = np.ones(env_count).tolist()
-    dim_array = np.ndarray([10, 10, 10, 10, 10, 10])
+    dim_array = [2, 2, 2, 2, 2, 2]
 
     p_payoff_array[0] = 0.5
     p_payoff_array[env_count - 1] = 0.5
 
-    i_payoff_array[0] = 0.4
-    i_payoff_array[env_count - 1] = 0.6
+    i_payoff_array[0] = 0.6
+    i_payoff_array[env_count - 1] = 0.4
 
-    d_array[0] = 4
-    d_array[env_count - 1] = 4
+    d_array[0] = 3
+    d_array[env_count - 1] = 3
 
     X0 = 1
     Y0 = -1
@@ -60,7 +63,40 @@ def optimize3by2():
 
     strategy = MetricStrategy(X0, Y0, env, adjacence_array, patroller_strat)
 
-    res = strategy.optimize()
+    res = strategy.generate_strategy()
+
+    return res
+
+
+def optimize2by2():
+    env_count = 4
+    idx_array = np.arange(env_count).tolist()
+    p_payoff_array = np.zeros(env_count).tolist()
+    i_payoff_array = np.zeros(env_count).tolist()
+    d_array = np.ones(env_count).tolist()
+    dim_array = [2, 2, 2, 2]
+
+    p_payoff_array[0] = 0.5
+    p_payoff_array[env_count - 1] = 0.5
+
+    i_payoff_array[0] = 0.6
+    i_payoff_array[env_count - 1] = 0.4
+
+    d_array[0] = 3
+    d_array[env_count - 1] = 3
+
+    X0 = 1
+    Y0 = -1
+
+    env = generate_cells(idx_array, p_payoff_array, i_payoff_array, d_array,
+                         dim_array)
+    adjacence_array = generate_adjacence([(0, 1), (0, 2), (1, 3), (2, 3)],
+                                         env_count)
+    patroller_strat = generate_p_strategy(adjacence_array)
+
+    strategy = MetricStrategy(X0, Y0, env, adjacence_array, patroller_strat)
+
+    res = strategy.generate_strategy()
 
     return res
 
@@ -101,10 +137,11 @@ def optimize4by3():
 
 
 if __name__ == '__main__':
-    res = simple_optimize()
+    # res = simple_optimize()
 
-    # res = optimize4by3()
+    res = optimize2by2()
     print(res)
     print('\n')
+    cell_count = math.sqrt(res.x.size)
 
     print(res.x.reshape((3, 3)))
